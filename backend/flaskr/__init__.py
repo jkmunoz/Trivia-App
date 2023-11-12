@@ -4,32 +4,64 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 
-from models import setup_db, Question, Category
+from . models import setup_db, Question, Category
 
-QUESTIONS_PER_PAGE = 10
+QUESTIONS_PER_PAGE = 10   
+
+def paginate_questions(request, selection):
+    # Use arguments to get the page number.
+    page = request.args.get('page', 1, type=int)
+    start = (page -1) * QUESTIONS_PER_PAGE
+    end = start + QUESTIONS_PER_PAGE
+
+    # Use list interpolation to format lists of questions appropriately
+    # and return specific lists of questions. 
+    questions = [question.format() for question in selection]
+    current_questions = questions[start:end]
+
+    return current_questions
 
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
+    app.app_context().push()
     setup_db(app)
+    CORS(app)
 
     """
-    @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
+    DONE? Allowing '*' is automatic and I don't see a sample route.
+     @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
     """
+    
+    """
+    DONE @TODO: Use the after_request decorator to set Access-Control-Allow
+    """
+    # CORS headers
+    @app.after_request
+    def after_request(response):
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization,true")
+        response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
+        return response
+
 
     """
-    @TODO: Use the after_request decorator to set Access-Control-Allow
-    """
-
-    """
-    @TODO:
+    DONE @TODO:
     Create an endpoint to handle GET requests
     for all available categories.
     """
+# Retrieves all categories then formats them as a dictionary; the key being the ID and category types being the values.
+    @app.route('/categories')
+    def retrieves_categories():
+        categories = Category.query.all()
+        formatted_categories = {category.id: category.type for category in categories}
 
+        return jsonify({
+            'success': True,
+            'categories': formatted_categories,
+        })
 
     """
-    @TODO:
+    DONE @TODO:
     Create an endpoint to handle GET requests for questions,
     including pagination (every 10 questions).
     This endpoint should return a list of questions,
@@ -40,6 +72,30 @@ def create_app(test_config=None):
     ten questions per page and pagination at the bottom of the screen for three pages.
     Clicking on the page numbers should update the questions.
     """
+# Retrieves paginated questions based on the chosen category IF one if chosen (10/ page), otherwise all Q's are returned. 
+# Returns a list of questions, a number of total Q's, the current category, and all categories. 
+    @app.route('/questions')
+    def retrieves_questions():
+        category = request.args.get('category', None)
+        if category:
+            selection = Question.query.filter_by(Question.category).all()
+        else:
+            selection = Question.query.order_by(Question.category).all()
+        formatted_questions = paginate_questions(request, selection)
+        categories = Category.query.all()
+        formatted_categories = {category.id: category.type for category in categories}
+
+
+        if len(formatted_questions) == 0:
+            abort(404)
+
+        return jsonify({
+            'success': True,
+            'questions': formatted_questions,
+            'total_questions': len(Question.query.all()),
+            'current_category': category,
+            'all_categories': formatted_categories,
+        })
 
     """
     @TODO:
