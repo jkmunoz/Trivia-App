@@ -85,7 +85,6 @@ def create_app(test_config=None):
         categories = Category.query.all()
         formatted_categories = {category.id: category.type for category in categories}
 
-
         if len(formatted_questions) == 0:
             abort(404)
 
@@ -149,7 +148,7 @@ def create_app(test_config=None):
 # Search is not required, and will only be used to find questions based on matching terms.
         q_text = body.get('question')
         a_text = body.get('answer')
-        cat = body.get('category', None)
+        cat = body.get('category')
         diff = body.get('difficulty')
         search = body.get('search', None)
 
@@ -185,8 +184,7 @@ def create_app(test_config=None):
             print(e)
             abort(422)
     """
-    DONE? @TODO:
-I added this to the main retrieves_questions().
+    DONE (in '/questions/ endpoint') @TODO:
     Create a POST endpoint to get questions based on a search term.
     It should return any questions for whom the search term
     is a substring of the question.
@@ -197,7 +195,7 @@ I added this to the main retrieves_questions().
     """
 
     """
-    @TODO:
+    DONE (in '/questions/ endpoint') @TODO:
     Create a GET endpoint to get questions based on category.
 
     TEST: In the "List" tab / main screen, clicking on one of the
@@ -216,12 +214,60 @@ I added this to the main retrieves_questions().
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not.
     """
+    @app.route('/play/', methods=['POST'])
+    def play_trivia():
+        body = request.get_json()
+
+        past_questions = body.get('past_questions', [])
+        category = body.get('category', None)
+
+
 
     """
-    @TODO:
+    DONE @TODO:
     Create error handlers for all expected errors
     including 404 and 422.
     """
+    @app.errorhandler(400)
+    def bad_request(error):
+        return ( 
+            jsonify({
+            "success": False,
+            "error": 400,
+            "message": "bad request"}), 
+            400,
+        )
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return ( 
+            jsonify({
+            "success": False,
+            "error": 404,
+            "message": "Not found"}), 
+            404,
+        )
+
+    @app.errorhandler(422)
+    def unprocessable(error):
+        return ( 
+            jsonify({
+            "success": False,
+            "error": 422,
+            "message": "Unprocessable"}), 
+            422,
+        )
+
+    @app.errorhandler(405)
+    def not_allowed(error):
+        return ( 
+            jsonify({
+            "success": False,
+            "error": 405,
+            "message": "Method not allowed"}), 
+            405,
+        )
 
     return app
+    
 
