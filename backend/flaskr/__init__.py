@@ -50,7 +50,7 @@ def create_app(test_config=None):
     for all available categories.
     """
 # Retrieves all categories then formats them as a dictionary; the key being the ID and category types being the values.
-    @app.route('/categories')
+    @app.route('/categories/')
     def retrieves_categories():
         categories = Category.query.all()
         formatted_categories = {category.id: category.type for category in categories}
@@ -74,13 +74,13 @@ def create_app(test_config=None):
     """
 # Retrieves paginated questions based on the chosen category IF one if chosen (10/ page), otherwise all Q's are returned. 
 # Returns a list of questions, a number of total Q's, the current category, and all categories. 
-    @app.route('/questions')
+    @app.route('/questions/')
     def retrieves_questions():
         category = request.args.get('category', None)
         if category:
-            selection = Question.query.filter_by(Question.category).all()
+            selection = Question.query.filter_by(category=category).all()
         else:
-            selection = Question.query.order_by(Question.category).all()
+            selection = Question.query.all()
         formatted_questions = paginate_questions(request, selection)
         categories = Category.query.all()
         formatted_categories = {category.id: category.type for category in categories}
@@ -94,19 +94,43 @@ def create_app(test_config=None):
             'questions': formatted_questions,
             'total_questions': len(Question.query.all()),
             'current_category': category,
+# TODO: add number of Q's in specific category.
             'all_categories': formatted_categories,
         })
 
     """
-    @TODO:
+    DONE @TODO:
     Create an endpoint to DELETE question using a question ID.
 
     TEST: When you click the trash icon next to a question, the question will be removed.
     This removal will persist in the database and when you refresh the page.
     """
 
+    @app.route('/questions/<int:question_id>/', methods=['DELETE'])
+    def delete_question(question_id):
+# checks if questions exists.
+        try:
+            question = Question.query.filter(Question.id == question_id).one_or_none()
+# If the questions does not exist an error is thrown.
+            if question is None:
+                abort(404)
+# If the question exists, we proceed using delete method.
+            question.delete()
+# Updates the list of questions.
+            selection = Question.query.order_by(Question.id).all()
+            current_questions = paginate_questions(request, selection)
+
+            return jsonify({
+                'success': True,
+                'deleted': question_id, 
+                'questions': current_questions, 
+                'total_questions': len(Question.query.all())
+            })
+        
+        except:
+            abort(422)
     """
-    @TODO:
+    DONE @TODO:
     Create an endpoint to POST a new question,
     which will require the question and answer text,
     category, and difficulty score.
@@ -115,9 +139,54 @@ def create_app(test_config=None):
     the form will clear and the question will appear at the end of the last page
     of the questions list in the "List" tab.
     """
+# This route is just '/questions' because we want to add all new questions to the entire dictionary of questions.
+    @app.route('/questions/', methods=['POST'])
+    def create_question():
+# Making a request to the user for questions info.
+        body = request.get_json()
 
+# Info to populate the question.
+# Search is not required, and will only be used to find questions based on matching terms.
+        q_text = body.get('question')
+        a_text = body.get('answer')
+        cat = body.get('category', None)
+        diff = body.get('difficulty')
+        search = body.get('search', None)
+
+        try:
+            if search:
+                selection = Question.query.order_by(Question.id).filter(
+                    Question.question.ilike("%{}%".format(search))
+                )
+                current_questions = paginate_questions(request, selection)
+
+                return jsonify({
+                    'success': True, 
+                    'questions': current_questions, 
+                    'total_questions': len(selection.all())
+                })
+            
+            else:
+                question = Question(question=q_text, answer=a_text, category=cat, difficulty=diff)
+                question.insert()
+
+                selection = Question.query.order_by(Question.id)
+                current_questions = paginate_questions(request, selection)
+
+# Verification that a new question was added successfully.
+                return jsonify({
+                    'success': True,
+                    'added': question.id,
+                    'questions': current_questions,
+                    'total_questions': len(selection.all())
+                })
+# If the request for a new question cannot be processed an error 422 is thrown.
+        except Exception as e:
+            print(e)
+            abort(422)
     """
-    @TODO:
+    DONE? @TODO:
+I added this to the main retrieves_questions().
     Create a POST endpoint to get questions based on a search term.
     It should return any questions for whom the search term
     is a substring of the question.
