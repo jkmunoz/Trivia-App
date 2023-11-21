@@ -6,7 +6,8 @@ import random
 
 from . models import setup_db, Question, Category
 
-QUESTIONS_PER_PAGE = 10   
+QUESTIONS_PER_PAGE = 10 
+past_questions = []  
 
 def paginate_questions(request, selection):
     # Use arguments to get the page number.
@@ -77,16 +78,36 @@ def create_app(test_config=None):
     @app.route('/questions/')
     def retrieves_questions():
         category = request.args.get('category', None)
+        categories = Category.query.all()
+        # previous_question = request.json.get('previous_question', None)
+
+        # if category not in categories:
+        #     return jsonify({
+        #         'error': 'Not a valid category.'
+        #     }), 400
+        
         if category:
             selection = Question.query.filter_by(category=category).all()
         else:
             selection = Question.query.all()
         formatted_questions = paginate_questions(request, selection)
-        categories = Category.query.all()
         formatted_categories = {category.id: category.type for category in categories}
 
         if len(formatted_questions) == 0:
             abort(404)
+
+        # available_questions = [q for q in formatted_questions if q != previous_question]
+
+#         if not available_questions:
+#             return jsonify({
+#                 'message': 'All questions for this category have been answered.'
+#             }), 200
+        
+# # Choose a random question.
+#         random_question = random.choice(available_questions)
+
+# # Update the list of past questions (not previous_question is singular, past_questions is plural).
+#         past_questions.append(random_question)
 
         return jsonify({
             'success': True,
@@ -214,12 +235,12 @@ def create_app(test_config=None):
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not.
     """
-    @app.route('/play/', methods=['POST'])
-    def play_trivia():
-        body = request.get_json()
+    # @app.route('/play/', methods=['POST'])
+    # def play_trivia():
+        # note previous questions asked, if any.
+        # return random question within given category.
 
-        past_questions = body.get('past_questions', [])
-        category = body.get('category', None)
+
 
 
 
