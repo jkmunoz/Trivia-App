@@ -7,7 +7,6 @@ import random
 from . models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10 
-past_questions = []  
 
 def paginate_questions(request, selection):
     # Use arguments to get the page number.
@@ -56,6 +55,9 @@ def create_app(test_config=None):
         categories = Category.query.all()
         formatted_categories = {category.id: category.type for category in categories}
 
+        if len(formatted_categories) == 0:
+            abort(500)
+
         return jsonify({
             'success': True,
             'categories': formatted_categories,
@@ -79,12 +81,6 @@ def create_app(test_config=None):
     def retrieves_questions():
         category = request.args.get('category', None)
         categories = Category.query.all()
-        # previous_question = request.json.get('previous_question', None)
-
-        # if category not in categories:
-        #     return jsonify({
-        #         'error': 'Not a valid category.'
-        #     }), 400
         
         if category:
             selection = Question.query.filter_by(category=category).all()
@@ -95,19 +91,6 @@ def create_app(test_config=None):
 
         if len(formatted_questions) == 0:
             abort(404)
-
-        # available_questions = [q for q in formatted_questions if q != previous_question]
-
-#         if not available_questions:
-#             return jsonify({
-#                 'message': 'All questions for this category have been answered.'
-#             }), 200
-        
-# # Choose a random question.
-#         random_question = random.choice(available_questions)
-
-# # Update the list of past questions (not previous_question is singular, past_questions is plural).
-#         past_questions.append(random_question)
 
         return jsonify({
             'success': True,
@@ -235,13 +218,36 @@ def create_app(test_config=None):
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not.
     """
-    # @app.route('/play/', methods=['POST'])
-    # def play_trivia():
-        # note previous questions asked, if any.
-        # return random question within given category.
+    
+    
+    # Used IdenTiclla's '/play' endpoint. https://github.com/IdenTiclla/trivia-api-udacity/blob/master/backend/flaskr/__init__.py
+    @app.route('/quizzes/', methods=['POST'])
+    # example of how to curl this endpoint: curl -X POST -H "Content-Type: application/json" -d '{"category": {"id": 1, "type": "Science"}, "previous_questions": []}' http://127.0.0.1:5000/quizzes/
+    def play_trivia():
+        try:
+            body = request.get_json()
+            category = body.get('category', None)
+            previous_questions = body.get('previous questions', [])
 
+            category_id = category['id']
+            next_question = None
+            
+            if category_id != 0:
+                available_questions = Question.query.filter_by(category=category_id).filter(Question.id.notin_((previous_questions))).all()
+            else:
+                available_questions = Question.query.filter(Question.id.notin_((previous_questions))).all()
 
+            if len(available_questions) > 0:
+                next_question = random.choice(available_questions).format()
 
+            return jsonify({
+                'question': next_question,
+                'success': True
+            })
+    
+        except Exception as e:
+            print(str(e))
+            abort(422)
 
 
     """
@@ -287,6 +293,16 @@ def create_app(test_config=None):
             "error": 405,
             "message": "Method not allowed"}), 
             405,
+        )
+    
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        return (
+            jsonify({
+                "success": False,
+                "error": 500,
+                "message": "Internal server error"
+            }), 500
         )
 
     return app

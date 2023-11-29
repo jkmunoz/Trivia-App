@@ -35,7 +35,7 @@ class TriviaTestCase(unittest.TestCase):
     """
     # Test 1.a for success getting questions.
     def test_get_paginated_questions(self):
-        res = self.client().get('/questions')
+        res = self.client().get('/questions/')
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -45,12 +45,31 @@ class TriviaTestCase(unittest.TestCase):
 
     # Test 1.b for failure getting questions.
     def test_404_requesting_beyond_valid_page(self):
-        res = self.client().get('/questions?page=1000', json={'category': 'art'})
+        res = self.client().get('/questions/?page=1000', json={'category': 'art'})
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], 'Not Found')
+        self.assertEqual(data['message'], 'Not found')
+
+    # Test 2.a for success getting all categories.
+    def test_get_categories(self):
+        res = self.client().get('/categories/')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertTrue(data['categories'])
+        self.assertTrue(len(data['categories']))
+
+    # Test 2.b for failure getting list of categories.
+    def test_404_if_no_categories_exist(self):
+        res = self.client().get('/categories/') 
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 500)
+        self.assertEqual(data['success'], True)
+        self.assertEqual(data['message'], 'Internal Server Error')
 
 
 # Make the tests conveniently executable
