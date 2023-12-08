@@ -50,7 +50,7 @@ def create_app(test_config=None):
     for all available categories.
     """
 # Retrieves all categories then formats them as a dictionary; the key being the ID and category types being the values.
-    @app.route('/categories/')
+    @app.route('/categories/', methods=['GET', 'POST'])
     def retrieves_categories():
         categories = Category.query.all()
         formatted_categories = {category.id: category.type for category in categories}
@@ -77,7 +77,7 @@ def create_app(test_config=None):
     """
 # Retrieves paginated questions based on the chosen category IF one if chosen (10/ page), otherwise all Q's are returned. 
 # Returns a list of questions, a number of total Q's, the current category, and all categories. 
-    @app.route('/questions/')
+    @app.route('/questions/', methods=['GET', 'POST'])
     def retrieves_questions():
         category = request.args.get('category', None)
         categories = Category.query.all()
@@ -98,7 +98,7 @@ def create_app(test_config=None):
             'total_questions': len(Question.query.all()),
             'current_category': category,
 # TODO: add number of Q's in specific category.
-            'all_categories': formatted_categories,
+            'categories': formatted_categories,
         })
 
     """
@@ -150,16 +150,16 @@ def create_app(test_config=None):
 
 # Info to populate the question.
 # Search is not required, and will only be used to find questions based on matching terms.
-        q_text = body.get('question')
-        a_text = body.get('answer')
-        cat = body.get('category')
-        diff = body.get('difficulty')
-        search = body.get('search', None)
+        q = body.get('question')
+        a = body.get('answer')
+        c = body.get('category')
+        d = body.get('difficulty')
+        s = body.get('search', None)
 
         try:
-            if search:
+            if s:
                 selection = Question.query.order_by(Question.id).filter(
-                    Question.question.ilike("%{}%".format(search))
+                    Question.question.ilike("%{}%".format(s))
                 )
                 current_questions = paginate_questions(request, selection)
 
@@ -170,7 +170,7 @@ def create_app(test_config=None):
                 })
             
             else:
-                question = Question(question=q_text, answer=a_text, category=cat, difficulty=diff)
+                question = Question(question=q, answer=a, category=c, difficulty=d)
                 question.insert()
 
                 selection = Question.query.order_by(Question.id)
@@ -227,8 +227,7 @@ def create_app(test_config=None):
         try:
             body = request.get_json()
             category = body.get('category', None)
-            previous_questions = body.get('previous questions', [])
-
+            previous_questions = body.get('previous_questions', [])
             category_id = category['id']
             next_question = None
             
@@ -242,6 +241,7 @@ def create_app(test_config=None):
 
             return jsonify({
                 'question': next_question,
+                'category': category,
                 'success': True
             })
     
