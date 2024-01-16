@@ -113,9 +113,8 @@ def create_app(test_config=None):
     def delete_question(question_id):
 # checks if questions exists.
         try:
-            question = Question.query.filter(Question.id == question_id).one_or_none()
 # If the questions does not exist an error is thrown.
-            if question is None:
+            if (question := Question.query.filter(Question.id == question_id).one_or_none()) is None:
                 abort(404)
 # If the question exists, we proceed using delete method.
             question.delete()
